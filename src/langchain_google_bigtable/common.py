@@ -27,6 +27,7 @@ PACKAGE_PREFIX = "langchain-google-bigtable-python:"
 def use_client_or_default(
     client: Optional[bigtable.Client], client_name: str
 ) -> bigtable.Client:
+    """Ensures a bigtable.Client is available, creating one with a user agent if needed."""
     user_agent = PACKAGE_PREFIX + client_name + "/" + __version__
     client_info = DEFAULT_CLIENT_INFO
     client_info.user_agent = user_agent
