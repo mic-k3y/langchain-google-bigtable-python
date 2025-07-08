@@ -25,13 +25,13 @@ PACKAGE_PREFIX = "langchain-google-bigtable-python:"
 
 
 def use_client_or_default(
-    client: Optional[bigtable.Client], client_name: str
+    client: Optional[bigtable.Client], client_name: str, project_id: Optional[str] = None
 ) -> bigtable.Client:
     user_agent = PACKAGE_PREFIX + client_name + "/" + __version__
     client_info = DEFAULT_CLIENT_INFO
     client_info.user_agent = user_agent
     if not client:
-        client = bigtable.Client(admin=True, client_info=client_info)
+        client = bigtable.Client(admin=True, client_info=client_info, project=project_id)
 
     client_agent = client._client_info.user_agent
     if not client_agent:
@@ -39,3 +39,4 @@ def use_client_or_default(
     elif user_agent not in client_agent:
         client._client_info.user_agent = " ".join([user_agent, client_agent])
     return client
+
