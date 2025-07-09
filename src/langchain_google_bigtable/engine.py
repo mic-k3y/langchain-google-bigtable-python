@@ -40,7 +40,7 @@ class BigtableEngine:
         """
         self._loop = loop
         self._thread = thread
-        self._client = client
+        self.client = client
 
     @classmethod
     def sync_initialize(cls, client: BigtableDataClientAsync) -> "BigtableEngine":
