@@ -14,27 +14,29 @@
 
 from __future__ import annotations
 
-import json
-import struct
-import uuid
-from dataclasses import dataclass
-from enum import Enum
 from typing import Any, Callable, Dict, Iterator, List, Optional
 
 from google.cloud import bigtable  # type: ignore
 
 from langchain.storage import BaseStore
+from engine import BigtableEngine
 
 from .common import use_client_or_default
 
-DEFAULT_TABLE_SCHEMA_COLUMN_FAMILIES = ["data"]
+DEFAULT_TABLE_COLUMN_FAMILIES = ["kv"]
+
+
 def init_byte_store_table(
         instance_id: str,
         table_id: str,
         project_id: Optional[str] = None,
         client: Optional[bigtable.Client] = None,
-        column_families: Optional[List[str]] = DEFAULT_TABLE_SCHEMA_COLUMN_FAMILIES
+        column_families: Optional[List[str]] = DEFAULT_TABLE_COLUMN_FAMILIES
 ) -> None:
+    """
+    Create a table for saving of LangChain Key-value pairs.
+    If table already exists, a google.api_core.exceptions.AlreadyExists error is thrown.
+    """
 
     table_client = (
         use_client_or_default(client, "key_value_store", project_id)
@@ -46,6 +48,3 @@ def init_byte_store_table(
     for cf in column_families:
         families[cf] = bigtable.column_family.MaxVersionsGCRule(1)
     table_client.create(column_families=families)
-
-
-
