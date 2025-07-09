@@ -17,13 +17,87 @@ from __future__ import annotations
 from typing import Any, Callable, Dict, Iterator, List, Optional
 
 from google.cloud import bigtable  # type: ignore
+from bigtable.data import BigtableDataClientAsync
 
 from langchain.storage import BaseStore
-from engine import BigtableEngine
 
-from .common import use_client_or_default
+from engine import BigtableEngine
+from async_key_value_store import AsyncBigtableByteStore
+from .common import use_client_or_default, get_async_data_client
 
 DEFAULT_TABLE_COLUMN_FAMILIES = ["kv"]
+DEFAULT_VALUE_COLUMN_FAMILY = "kv"
+DEFAULT_VALUE_COLUMN_QUALIFIER = "val"
+
+class BigtableByteStore(BaseStore[str, bytes]):
+    """
+    Public-facing Bigtable ByteStore for LangChain. Provides a unified API
+    for both synchronous and asynchronous operations.
+    """
+
+    __create_key = object()
+
+    def __init__(self, key: object, engine: BigtableEngine, async_store: AsyncBigtableByteStore):
+        """
+        Private constructor. Use the .create() or .create_sync()
+        classmethods to instantiate this class.
+        """
+        if key != BigtableByteStore.__create_key:
+            raise Exception("Do not call the constructor directly. Use a .create() or .create_sync() factory method.")
+        self._engine = engine
+        self.__async_store = async_store
+
+    @classmethod
+    def create_sync(
+            cls,
+            instance_id: str,
+            table_id: str,
+            *,
+            engine: Optional[BigtableEngine] = None,
+            async_data_client: Optional[BigtableDataClientAsync] = None,
+            project_id: Optional[str] = None,
+            value_column_family: Optional[str] = DEFAULT_VALUE_COLUMN_FAMILY,
+            value_column_qualifier: Optional[str] = DEFAULT_VALUE_COLUMN_QUALIFIER,
+            app_profile_id: Optional[str] = None
+    ):
+        """
+        Creates a sync-initialized instance of the BigtableByteStore.
+
+        This is the standard entry point for synchronous applications. It will create
+        a new BigtableEngine if one is not provided.
+
+        Args:
+            instance_id: The Bigtable instance ID.
+            table_id: The Bigtable table ID.
+            engine: An optional, existing engine to share resources.
+            async_data_client: An optional, pre-configured async client.
+            project_id: An optional project ID to use if setting up a new data client.
+            value_column_family: The column family for storing values. Defaults to "kv"
+            value_column_qualifier: The column family for storing values. Defaults to "val".
+            app_profile_id: An Optional Bigtable app profile ID for routing requests.
+
+        Returns:
+            A new, fully initialized BigtableByteStore instance.
+
+        Note:
+            'engine' argument overrides 'async_data_client' argument if both arguments are provided.
+        """
+
+        if engine and async_data_client:
+            raise ValueError("Cannot provide both 'engine' and 'async_data_client'.")
+        if not engine:
+            if not async_data_client:
+                async_data_client = get_async_data_client(project_id)
+            engine = BigtableEngine.sync_initialize(client=async_data_client)
+
+        coro = AsyncBigtableByteStore.create(
+            engine=engine, instance_id=instance_id, table_id=table_id,
+            value_column_family=value_column_family, value_column_qualifier=value_column_qualifier,
+            app_profile_id=app_profile_id
+        )
+
+        async_store = engine.__run_as_sync(coro)
+        return cls(cls.__create_key, engine, async_store)
 
 
 def init_byte_store_table(
