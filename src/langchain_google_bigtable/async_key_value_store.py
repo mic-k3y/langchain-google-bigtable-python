@@ -89,5 +89,14 @@ class AsyncBigtableByteStore:
                 results.append(None) # Key does not exist
         return results
 
+    async def amset(self, kv_pairs: List[Tuple[str, bytes]]) -> None:
+        """Asynchronously sets multiple key-value pairs in Bigtable."""
+        mutations = []
 
+        for key, val in kv_pairs:
+            mutation = DirectRow(row_key=key.encode('utf-8'))
+            mutation.set_cell(self.value_column_family, self.value_column_qualifier.encode('utf-8'), val)
+            mutations.append(mutation)
 
+        if mutations:
+            await self.table.mutate_rows(mutations)
