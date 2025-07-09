@@ -62,5 +62,32 @@ class AsyncBigtableByteStore:
         """Async factory for the store. Allows for future async setup logic."""
         return cls(**kwargs)
 
+    async def amget(self, keys: List[str]) -> List[Optional[bytes]]:
+        """
+        Asynchronously gets multiple values from Bigtable by their keys.
+
+        Note: Returns None for keys that don't exist and for keys that exist but no cell in the value column
+        """
+        if not keys:
+            return []
+        row_keys = [key.encode('utf-8') for key in keys]
+
+        rows = await self.table.read_rows(rows=row_keys)
+
+        row_maps = {row.row_key: row for row in rows}
+
+        results = []
+        for key in row_keys:
+            row = row_maps.get(key)
+            if row:
+                cell = row.cells.get(self.value_column_family, {}).get(self.value_column_qualifier.encode('utf-8'), [])
+                if cell:
+                    results.append(cell[0].value)
+                else:
+                    results.append(None) # Key exists but column doesn't
+            else:
+                results.append(None) # Key does not exist
+        return results
+
 
 
