@@ -16,6 +16,8 @@ import asyncio
 from threading import Thread
 from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, Sequence, Tuple
 
+from engine import BigtableEngine
+
 from google.cloud.bigtable.data import BigtableDataClientAsync
 from google.cloud.bigtable.data.mutations import DirectRow
 from google.cloud.bigtable.data.models import Row, Cell
@@ -54,4 +56,11 @@ class AsyncBigtableByteStore:
             table_id=table_id,
             app_profile_id=app_profile_id
         )
+
+    @classmethod
+    async def create(cls, **kwargs) -> "AsyncBigtableByteStore":
+        """Async factory for the store. Allows for future async setup logic."""
+        return cls(**kwargs)
+
+
 
