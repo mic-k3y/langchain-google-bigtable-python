@@ -66,7 +66,14 @@ class AsyncBigtableByteStore:
         """
         Asynchronously gets multiple values from Bigtable by their keys.
 
-        Note: Returns None for keys that don't exist and for keys that exist but no cell in the value column
+        Args:
+            keys: List of row keys of rows to retrieve from the store table.
+
+        Returns:
+            List of values for specified keys in the order of the row keys provided.
+
+        Note:
+            Returns None for keys that don't exist and for keys that exist but no cell in the value column
         """
         if not keys:
             return []
@@ -90,7 +97,12 @@ class AsyncBigtableByteStore:
         return results
 
     async def amset(self, kv_pairs: List[Tuple[str, bytes]]) -> None:
-        """Asynchronously sets multiple key-value pairs in Bigtable."""
+        """
+        Asynchronously sets multiple key-value pairs in Bigtable.
+
+        Args:
+            kv_pairs: List of key-value pair tuples to add to the store table.
+        """
         mutations = []
 
         for key, val in kv_pairs:
@@ -102,7 +114,12 @@ class AsyncBigtableByteStore:
             await self.table.mutate_rows(mutations)
 
     async def amdelete(self, keys: List[str]) -> None:
-        """Asynchronously deletes multiple rows by their keys."""
+        """
+        Asynchronously deletes multiple rows by their keys.
+
+        Args:
+            keys: List of row keys of rows to delete from the table.
+        """
         mutations = []
         for key in keys:
             mutation = DirectRow(row_key=key.encode('utf-8'))
