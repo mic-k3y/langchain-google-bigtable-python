@@ -100,3 +100,14 @@ class AsyncBigtableByteStore:
 
         if mutations:
             await self.table.mutate_rows(mutations)
+
+    async def amdelete(self, keys: List[str]) -> None:
+        """Asynchronously deletes multiple rows by their keys."""
+        mutations = []
+        for key in keys:
+            mutation = DirectRow(row_key=key.encode('utf-8'))
+            mutation.delete()
+            mutations.append(mutation)
+
+        if mutations:
+            await self.table.mutate_rows(mutations)
