@@ -145,6 +145,10 @@ class BigtableByteStore(BaseStore[str, bytes]):
         )
         return cls(cls.__create_key, engine, async_store)
 
+    def mget(self, keys: List[str]) -> List[Optional[bytes]]:
+        """Synchronously get values for a sequence of keys."""
+        return self._engine._run_as_sync(self.__async_store.amget(keys))
+
 
 def init_byte_store_table(
         instance_id: str,
