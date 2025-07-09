@@ -153,6 +153,11 @@ class BigtableByteStore(BaseStore[str, bytes]):
         """Asynchronously get values for a sequence of keys."""
         return await self._engine._run_as_async(self.__async_store.amget(keys))
 
+    def mset(self, kv_pairs: List[Tuple[str, bytes]]) -> None:
+        """Synchronously set values for a sequence of key-value pairs."""
+        return self._engine._run_as_sync(self.__async_store.amset(kv_pairs))
+
+
 
 def init_byte_store_table(
         instance_id: str,
