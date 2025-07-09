@@ -99,6 +99,52 @@ class BigtableByteStore(BaseStore[str, bytes]):
         async_store = engine.__run_as_sync(coro)
         return cls(cls.__create_key, engine, async_store)
 
+    @classmethod
+    async def create(
+            cls,
+            instance_id: str,
+            table_id: str,
+            *,
+            engine: Optional[BigtableEngine] = None,
+            async_data_client: Optional[BigtableDataClientAsync] = None,
+            project_id: Optional[str] = None,
+            value_column_family: Optional[str] = DEFAULT_VALUE_COLUMN_FAMILY,
+            value_column_qualifier: Optional[str] = DEFAULT_VALUE_COLUMN_QUALIFIER,
+            app_profile_id: Optional[str] = None
+    ):
+        """
+        Creates an async-initialized instance of the BigtableByteStore.
+
+        This is the standard entry point for asynchronous applications.
+
+        Args:
+            instance_id: The Bigtable instance ID.
+            table_id: The Bigtable table ID.
+            engine: An optional, pre-configured async client.
+            async_data_client: An optional, pre-configured async client.
+            project_id: An optional project_id to use if setting up a new data client.
+            value_column_family: The column family for storing values. Defaults to "kv".
+            value_column_qualifier: The column qualifier for storing values. Defaults to "val".
+            app_profile_id: An optional Bigtable app profile ID for routing requests.
+
+        Returns:
+            A new, fully initialized BigtableByteStore Instance.
+
+        Note:
+            'engine' argument overrides 'async_data_client' argument if both arguments are provided.
+        """
+        if not engine:
+            if not async_data_client:
+                async_data_client = get_async_data_client(project_id)
+            engine = BigtableEngine.sync_initialize(client=async_data_client)
+
+        async_store = await AsyncBigtableByteStore.create(
+            engine=engine, instance_id=instance_id, table_id=table_id,
+            value_column_family=value_column_family, value_column_qualifier=value_column_qualifier,
+            app_profile_id=app_profile_id
+        )
+        return cls(cls.__create_key, engine, async_store)
+
 
 def init_byte_store_table(
         instance_id: str,
