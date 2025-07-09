@@ -111,3 +111,29 @@ class AsyncBigtableByteStore:
 
         if mutations:
             await self.table.mutate_rows(mutations)
+
+    async def ayield_keys(self, prefix: Optional[str] = None) -> AsyncIterator[str]:
+        """
+        Asynchronously yields keys from the table, optionally filtering by prefix.
+
+        Args:
+            prefix: An optional prefix to match the row keys.
+
+        Returns:
+            An AsyncIterator of row key strings.
+        """
+        if not prefix or prefix == "":
+            # return all keys
+            row_filter = StripValueFilter()
+            async for row in self.table.read_rows(filter_=row_filter):
+                yield row.row_key.decode('utf-8')
+
+        else:
+            # return keys matching the prefix
+            end_key = prefix[:-1] + chr(ord(prefix[-1]) + 1)
+
+            row_set = RowSet()
+            row_set.add_row_range_from_keys(prefix.encode("utf-8"), end_key.encode("utf-8"))
+
+            async for row in self.table.read_rows(row_set=row_set):
+                yield row.row_key.decode('utf-8')
