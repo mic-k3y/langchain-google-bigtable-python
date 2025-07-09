@@ -40,3 +40,7 @@ def use_client_or_default(
         client._client_info.user_agent = " ".join([user_agent, client_agent])
     return client
 
+def get_async_data_client(project_id: Optional[str] = None):
+    """Returns an instance of BigtableDataClientAsync client"""
+    client = bigtable.data.BigtableDataAsync(project_id)
+    return client
