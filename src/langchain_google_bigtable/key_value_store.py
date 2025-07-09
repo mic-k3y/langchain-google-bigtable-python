@@ -29,6 +29,31 @@ DEFAULT_TABLE_COLUMN_FAMILIES = ["kv"]
 DEFAULT_VALUE_COLUMN_FAMILY = "kv"
 DEFAULT_VALUE_COLUMN_QUALIFIER = "val"
 
+
+def init_byte_store_table(
+        instance_id: str,
+        table_id: str,
+        project_id: Optional[str] = None,
+        client: Optional[bigtable.Client] = None,
+        column_families: Optional[List[str]] = DEFAULT_TABLE_COLUMN_FAMILIES
+) -> None:
+    """
+    Create a table for saving of LangChain Key-value pairs.
+    If table already exists, a google.api_core.exceptions.AlreadyExists error is thrown.
+    """
+
+    table_client = (
+        use_client_or_default(client, "key_value_store", project_id)
+        .instance(instance_id)
+        .table(table_id)
+    )
+
+    families: Dict[str, bigtable.column_family.MaxVersionsGCRule] = dict()
+    for cf in column_families:
+        families[cf] = bigtable.column_family.MaxVersionsGCRule(1)
+    table_client.create(column_families=families)
+
+
 class BigtableByteStore(BaseStore[str, bytes]):
     """
     Public-facing Bigtable ByteStore for LangChain. Provides a unified API
@@ -157,27 +182,6 @@ class BigtableByteStore(BaseStore[str, bytes]):
         """Synchronously set values for a sequence of key-value pairs."""
         return self._engine._run_as_sync(self.__async_store.amset(kv_pairs))
 
-
-
-def init_byte_store_table(
-        instance_id: str,
-        table_id: str,
-        project_id: Optional[str] = None,
-        client: Optional[bigtable.Client] = None,
-        column_families: Optional[List[str]] = DEFAULT_TABLE_COLUMN_FAMILIES
-) -> None:
-    """
-    Create a table for saving of LangChain Key-value pairs.
-    If table already exists, a google.api_core.exceptions.AlreadyExists error is thrown.
-    """
-
-    table_client = (
-        use_client_or_default(client, "key_value_store", project_id)
-        .instance(instance_id)
-        .table(table_id)
-    )
-
-    families: Dict[str, bigtable.column_family.MaxVersionsGCRule] = dict()
-    for cf in column_families:
-        families[cf] = bigtable.column_family.MaxVersionsGCRule(1)
-    table_client.create(column_families=families)
+    async def amset(self, kv_pairs: List[Tuple[str, bytes]]) -> None:
+        """Asynchronously set values for a sequences of key-value pairs."""
+        return self._engine._run_as_async(self.__async_store.amset(kv_pairs))
